@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do App (Arquitectura Limpia)</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; color: #333; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; background: #f8f9fa; }
+        .input-group { display: flex; gap: 8px; margin-bottom: 20px; margin-top: 20px; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0052a3; }
+        li { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .done { text-decoration: line-through; color: #888; }
+        .btn-check { background: #28a745; font-size: 12px; padding: 6px 12px; }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h2>Mis Tareas</h2>
+        <select id="dbSelector" onchange="loadTasks()">
+            <option value="/api/sqlite/tasks">SQLite (En Memoria)</option>
+            <option value="/api/dict/tasks">Diccionario (En Memoria)</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="taskTitle" placeholder="Nueva tarea (mín. 3 letras)...">
+        <button onclick="addTask()">Agregar</button>
+    </div>
+
+    <ul id="taskList" style="list-style: none; padding: 0;"></ul>
+
+    <script>
+        // Obtiene la ruta de la base de datos seleccionada actualmente
+        function getApiUrl() {
+            return document.getElementById('dbSelector').value;
+        }
+
+        document.addEventListener("DOMContentLoaded", loadTasks);
+
+        async function loadTasks() {
+            const res = await fetch(getApiUrl());
+            const tasks = await res.json();
+            const ul = document.getElementById('taskList');
+            ul.innerHTML = '';
+            tasks.forEach(task => renderItem(task));
+        }
+
+        async function addTask() {
+            const input = document.getElementById('taskTitle');
+            const title = input.value;
+            
+            const res = await fetch(getApiUrl(), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+
+            if (res.ok) {
+                const task = await res.json();
+                renderItem(task);
+                input.value = '';
+            } else {
+                const err = await res.json();
+                alert("Error: " + err.error);
+            }
+        }
+
+        async function completeTask(id) {
+            const res = await fetch(`${getApiUrl()}/${id}/complete`, { method: 'PUT' });
+            if (res.ok) {
+                document.getElementById(`task-${id}`).classList.add('done');
+                const btn = document.getElementById(`btn-${id}`);
+                if (btn) btn.remove();
+            }
+        }
+
+        function renderItem(task) {
+            const ul = document.getElementById('taskList');
+            const li = document.createElement('li');
+            li.id = `task-${task.id}`;
+            if (task.completed) li.classList.add('done');
+
+            li.innerHTML = `
+                <span>${task.title}</span>
+                ${!task.completed ? `<button id="btn-${task.id}" class="btn-check" onclick="completeTask(${task.id})">✓ Completar</button>` : '<span>✓</span>'}
+            `;
+            ul.appendChild(li);
+        }
+    </script>
+</body>
+</html>
