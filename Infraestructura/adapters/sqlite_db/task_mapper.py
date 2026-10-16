@@ -7,7 +7,7 @@ class TaskMapper:
         return Task(
             id=dbo.id,
             title=dbo.title,
-            completed=bool(dbo.completed)  # Convierte int a bool
+            completed=bool(dbo.completed)
         )
 
     @staticmethod
@@ -15,5 +15,5 @@ class TaskMapper:
         return TaskDBO(
             id=domain_model.id,
             title=domain_model.title,
-            completed=1 if domain_model.completed else 0  # Convierte bool a int
+            completed=1 if domain_model.completed else 0
         )
